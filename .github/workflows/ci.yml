@@ -27,7 +27,7 @@ jobs:
         with:
           python-version: "3.11"
 
-      # 3. Install uv package manager and core CI tools
+      # 3. Install uv package manager and CI tools
       - name: Install uv and CI Tools
         run: |
           pip install uv
