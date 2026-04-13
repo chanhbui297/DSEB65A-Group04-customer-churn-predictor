@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [ "main" ]
 
-# Cancel previous running jobs on the same branch to save resources (Best practice)
+# Cancel previous running jobs on the same branch to save resources
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -17,11 +17,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout repository (Pinned to v4 for stability)
+      # 1. Checkout repository with full history
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 2. Set up Python environment
+      # 2. Set up Python 3.11 environment
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
@@ -45,7 +45,7 @@ jobs:
           DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
         run: |
           echo "Authenticating with DagsHub remote..."
-          # Configure DVC to use DagsHub token securely via Basic Auth
+          # Configure DVC to use DagsHub token securely via local config
           dvc remote modify origin --local auth basic
           dvc remote modify origin --local user __token__
           dvc remote modify origin --local password $DAGSHUB_TOKEN
@@ -70,13 +70,13 @@ jobs:
           fi
           
           if [ $MISSING_FILES -ne 0 ]; then
-            echo "Sanity check failed. Pipeline stopping."
+            echo "Sanity check failed. DVC pull might have failed."
             exit 1
           fi
           echo "✅ All essential artifacts verified successfully."
 
       # 7. Reproducibility Check: Dry-run Docker Builds
-      # This step confirms the project can be reproduced anywhere via Docker
+      # Validates that Dockerfiles are properly written and dependencies resolve
       - name: Dry-Run Docker Builds
         run: |
           echo "Verifying FastAPI backend container build..."
@@ -85,5 +85,5 @@ jobs:
           echo "Verifying Streamlit frontend container build..."
           docker build -t streamlit-dry-run -f streamlit_app/Dockerfile ./streamlit_app
           
-          echo "Verifying Docker Compose configuration..."
+          echo "Verifying Docker Compose configuration syntax..."
           docker compose config
