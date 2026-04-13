@@ -10,41 +10,58 @@ jobs:
   quality-assurance:
     runs-on: ubuntu-latest
     steps:
+      # 1. Fetch source code
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
+      # 2. Setup environment
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           
-      - name: Install uv
+      - name: Install uv package manager
         run: pip install uv
         
-      - name: Install dependencies
+      - name: Install dependencies and CI tools
         run: |
+          # Install dvc with s3 support for DagsHub integration
+          pip install dvc dvc-s3
           uv pip install --system -r requirements.txt pytest ruff
-          
-      - name: 1. Data Integrity Check
-        run: |
-          echo "Checking datasets..."
-          test -f data/raw/train.csv && echo "✅ train.csv exists"
-          test -f data/raw/new_dataset.csv && echo "✅ new_dataset.csv exists"
 
-      - name: 2. Code Linting (Ruff)
-        run: |
-          ruff check src/ streamlit_app/
-          
-      - name: 3. Structural Sanity Check
-        run: |
-          echo "Checking essential MLOps files..."
-          test -f src/api/main.py || (echo "❌ Backend main.py missing" && exit 1)
-          test -f src/models/train_model.py || (echo "❌ Train script missing" && exit 1)
-          test -f streamlit_app/app.py || (echo "❌ Streamlit app missing" && exit 1)
+      # 3. Code Quality Check (Fail-Fast Strategy)
+      - name: Run Linting (Ruff)
+        run: ruff check src/ streamlit_app/
 
-      - name: 4. Dry-run Docker Build
+      # 4. DVC Authentication & Pull (Crucial for Data/Model Integrity)
+      - name: Pull Data and Model from DagsHub
+        env:
+          DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
         run: |
-          echo "Testing Docker image builds (Dry-run)..."
-          # Bước này kiểm tra xem Dockerfile của Role 5 có bị lỗi không
+          # Authenticate DVC with DagsHub token
+          dvc remote modify origin --local auth basic
+          dvc remote modify origin --local user __token__
+          dvc remote modify origin --local password $DAGSHUB_TOKEN
+          # Pull specific files needed for validation
+          dvc pull data/raw/train.csv.dvc models/model.pkl.dvc
+
+      # 5. Integrity & Structural Sanity Check
+      - name: Verify Files Existence
+        run: |
+          echo "Verifying critical MLOps components..."
+          test -f data/raw/train.csv && echo "✅ Data pulled successfully"
+          test -f models/model.pkl && echo "✅ Model artifact present"
+          test -f src/api/main.py || (echo "❌ Backend entrypoint missing" && exit 1)
+          test -f src/models/train_model.py || (echo "❌ Training script missing" && exit 1)
+
+      # 6. Reproducibility Check (Docker Build)
+      - name: Dry-run Docker Builds
+        run: |
+          echo "Starting dry-run build for FastAPI..."
           docker build -t fastapi-test -f Dockerfile .
+          
+          echo "Starting dry-run build for Streamlit..."
           docker build -t streamlit-test -f streamlit_app/Dockerfile ./streamlit_app
+          
+          echo "Validating Docker Compose configuration..."
+          docker compose config
