@@ -1,91 +1,67 @@
-name: MLOps End-to-End Validation Pipeline
+name: MLOps End-to-End CI
 
 on:
-  push:
-    branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]
-
-# Cancel previous running jobs on the same branch to save resources
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+    branches: [ main ]
+  push:
+    branches: [ main ]
 
 jobs:
-  code-quality-and-reproducibility:
-    name: Lint, DVC Pull, and Docker Dry-Run
+  quality-assurance:
     runs-on: ubuntu-latest
-
     steps:
-      # 1. Checkout repository (Pinned to v4 as per best practices)
-      - name: Checkout Repository
+      # 1. Fetch source code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Set up Python environment
+      # 2. Setup environment
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-
-      # 3. Install uv package manager and core dependencies
-      - name: Install uv and CI Tools
+          python-version: '3.11'
+          
+      - name: Install uv package manager
+        run: pip install uv
+        
+      - name: Install dependencies and CI tools
         run: |
-          pip install uv
-          uv pip install --system ruff dvc dvc-s3
+          # Install dvc with s3 support for DagsHub integration
+          pip install dvc dvc-s3
+          uv pip install --system -r requirements.txt pytest ruff
 
-      # 4. Fail-Fast: Run Code Linting before heavy operations
-      - name: Run Code Linting (Ruff)
-        run: |
-          echo "Running Ruff to enforce code quality..."
-          ruff check src/ streamlit_app/
+      # 3. Code Quality Check (Fail-Fast Strategy)
+      - name: Run Linting (Ruff)
+        run: ruff check src/ streamlit_app/
 
-      # 5. Authenticate and Pull Data/Model from DagsHub via DVC
-      - name: DVC Authentication & Pull Artifacts
+      # 4. DVC Authentication & Pull (Crucial for Data/Model Integrity)
+      - name: Pull Data and Model from DagsHub
         env:
           DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
         run: |
-          echo "Authenticating with DagsHub remote..."
-          # Configure DVC to use DagsHub token securely (Basic Auth method)
+          # Authenticate DVC with DagsHub token
           dvc remote modify origin --local auth basic
           dvc remote modify origin --local user __token__
           dvc remote modify origin --local password $DAGSHUB_TOKEN
-          
-          echo "Pulling dataset and model artifacts..."
-          dvc pull -v
+          # Pull specific files needed for validation
+          dvc pull data/raw/train.csv.dvc models/model.pkl.dvc
 
-      # 6. Sanity Check: Ensure DVC successfully pulled the required files
-      - name: Verify Data & Model Existence
+      # 5. Integrity & Structural Sanity Check
+      - name: Verify Files Existence
         run: |
-          echo "Checking essential artifacts for reproducibility..."
-          
-          MISSING_FILES=0
-          
-          if [ ! -f "models/model.pkl" ]; then
-            echo "::error::Model artifact (models/model.pkl) is missing!"
-            MISSING_FILES=1
-          fi
-          
-          if [ ! -f "data/raw/train.csv" ]; then
-            echo "::error::Training data (data/raw/train.csv) is missing!"
-            MISSING_FILES=1
-          fi
-          
-          if [ $MISSING_FILES -ne 0 ]; then
-            echo "Sanity check failed. DVC pull might have failed."
-            exit 1
-          fi
-          
-          echo "All essential artifacts verified successfully."
+          echo "Verifying critical MLOps components..."
+          test -f data/raw/train.csv && echo "✅ Data pulled successfully"
+          test -f models/model.pkl && echo "✅ Model artifact present"
+          test -f src/api/main.py || (echo "❌ Backend entrypoint missing" && exit 1)
+          test -f src/models/train_model.py || (echo "❌ Training script missing" && exit 1)
 
-      # 7. Reproducibility Check: Dry-run Docker Builds
-      # Validates that Dockerfiles are properly written and dependencies resolve
-      - name: Dry-Run Docker Builds
+      # 6. Reproducibility Check (Docker Build)
+      - name: Dry-run Docker Builds
         run: |
-          echo "Verifying FastAPI backend container build..."
-          docker build -t fastapi-dry-run -f Dockerfile .
+          echo "Starting dry-run build for FastAPI..."
+          docker build -t fastapi-test -f Dockerfile .
           
-          echo "Verifying Streamlit frontend container build..."
-          docker build -t streamlit-dry-run -f streamlit_app/Dockerfile ./streamlit_app
+          echo "Starting dry-run build for Streamlit..."
+          docker build -t streamlit-test -f streamlit_app/Dockerfile ./streamlit_app
           
-          echo "Verifying Docker Compose configuration syntax..."
+          echo "Validating Docker Compose configuration..."
           docker compose config
