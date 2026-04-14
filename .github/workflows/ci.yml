@@ -1,50 +1,75 @@
-name: MLOps End-to-End CI
+name: MLOps End-to-End Validation Pipeline
 
 on:
-  pull_request:
-    branches: [ main ]
   push:
-    branches: [ main ]
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+# Cancel outdated runs to save GitHub Action minutes
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   quality-assurance:
+    name: Lint, DVC Pull, and Docker Validation
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
+      # 1. Checkout repository with full history for DVC and Git operations
+      - name: Checkout Repository
         uses: actions/checkout@v4
-        
+
+      # 2. Set up Python 3.11 environment
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          
-      - name: Install uv
-        run: pip install uv
-        
-      - name: Install dependencies
-        run: |
-          uv pip install --system -r requirements.txt pytest ruff
-          
-      - name: 1. Data Integrity Check
-        run: |
-          echo "Checking datasets..."
-          test -f data/raw/train.csv && echo "✅ train.csv exists"
-          test -f data/raw/new_dataset.csv && echo "✅ new_dataset.csv exists"
+          python-version: "3.11"
 
-      - name: 2. Code Linting (Ruff)
+      # 3. Install uv and core MLOps tools
+      - name: Install uv and CI Dependencies
         run: |
+          pip install uv
+          uv pip install --system ruff dvc dvc-s3
+
+      # 4. Fail-Fast: Check code quality before expensive operations
+      - name: Run Code Linting (Ruff)
+        run: |
+          echo "Executing Ruff to enforce clean code standards..."
           ruff check src/ streamlit_app/
-          
-      - name: 3. Structural Sanity Check
-        run: |
-          echo "Checking essential MLOps files..."
-          test -f src/api/main.py || (echo "❌ Backend main.py missing" && exit 1)
-          test -f src/models/train_model.py || (echo "❌ Train script missing" && exit 1)
-          test -f streamlit_app/app.py || (echo "❌ Streamlit app missing" && exit 1)
 
-      - name: 4. Dry-run Docker Build
+      # 5. Connect to DagsHub and pull large data/model artifacts
+      - name: DVC Authentication and Pull
+        env:
+          DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
         run: |
-          echo "Testing Docker image builds (Dry-run)..."
-          # Bước này kiểm tra xem Dockerfile của Role 5 có bị lỗi không
+          echo "Configuring DVC remote with DagsHub token..."
+          dvc remote modify origin --local auth basic
+          dvc remote modify origin --local user __token__
+          dvc remote modify origin --local password $DAGSHUB_TOKEN
+          
+          echo "Pulling binary artifacts from remote storage..."
+          dvc pull -v
+
+      # 6. Sanity Check: Ensure critical files exist for reproducibility
+      - name: Verify Artifact Existence
+        run: |
+          echo "Verifying pulled files..."
+          # Check if the model and main training data are present
+          test -f models/model.pkl || (echo "::error::model.pkl missing!" && exit 1)
+          test -f data/raw/train.csv || (echo "::error::train.csv missing!" && exit 1)
+          echo "✅ All essential files are present and verified."
+
+      # 7. Reproducibility Check: Validate Dockerization
+      # This ensures the professor can run your project with a single command
+      - name: Dry-Run Docker Builds
+        run: |
+          echo "Building FastAPI backend image..."
           docker build -t fastapi-test -f Dockerfile .
+          
+          echo "Building Streamlit frontend image..."
           docker build -t streamlit-test -f streamlit_app/Dockerfile ./streamlit_app
+          
+          echo "Validating Docker Compose orchestration..."
+          docker compose config

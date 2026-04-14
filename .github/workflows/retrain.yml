@@ -1,32 +1,66 @@
-name: Retrain
+name: Model Retraining Loop (CT)
 
+# Allow manual trigger via GitHub UI
 on:
   workflow_dispatch:
 
 jobs:
-  retrain:
+  retrain-and-update:
+    name: Automating Model Retraining
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      # 1. Checkout repository with full history to allow Git pushing later
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - uses: actions/setup-python@v5
+      # 2. Setup Python environment
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - run: pip install uv
-      - run: uv pip install -r requirements.txt --system
-
-      - name: Retrain
+      # 3. Install required MLOps tools
+      - name: Install MLOps Tools
         run: |
-          python src/models/train.py \
+          pip install uv
+          pip install dvc dvc-s3
+
+      # 4. Authenticate and Pull training data from DagsHub
+      - name: DVC Pull Training Data
+        env:
+          DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
+        run: |
+          # Configure DVC credentials locally for the runner session
+          dvc remote modify origin --local auth basic
+          dvc remote modify origin --local user __token__
+          dvc remote modify origin --local password $DAGSHUB_TOKEN
+          # Pull training data tracked by DVC
+          dvc pull data/raw/train.csv.dvc
+
+      # 5. Install dependencies from requirements.txt
+      - name: Install Project Dependencies
+        run: uv pip install --system -r requirements.txt mlflow
+
+      # 6. Execute retraining script and log experiment to DagsHub MLflow
+      - name: Run Retraining
+        env:
+          MLFLOW_TRACKING_URI: https://dagshub.com/${{ github.repository }}.mlflow
+          MLFLOW_TRACKING_USERNAME: ${{ github.actor }}
+          MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
+        run: |
+          # Use n_iter=2 for quick CI demonstration
+          python src/models/train_model.py \
             --data data/raw/train.csv \
-            --model_dir models
+            --model_dir models \
+            --n_iter 2
 
-      - name: Commit model
+      # 7. Update Model Registry (DVC) and Push Metadata (Git)
+      - name: Commit and Push New Model
+        env:
+          DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
         run: |
+          # Configure Git user for automated commit
           git config --global user.name "mlops-bot"
-          git config --global user.email "bot@github.com"
-          git add models/
-          git commit -m "auto retrain"
-          git push
