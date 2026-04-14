@@ -3,9 +3,10 @@ import logging
 import argparse
 import os  
 from pathlib import Path
+from datetime import datetime
+import json
 
-# Fix path
-root_dir = Path(__file__).resolve().parents[2]
+root_dir = Path(__file__).resolve().parents[1]
 if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
@@ -24,7 +25,51 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+import yaml
 
+def load_config(config_path: str = None) -> dict:
+    """Load drift config with fallback to defaults"""
+    DEFAULTS = {
+        "drift": {
+            "p_value_threshold": 0.05,
+            "psi_threshold": 0.20,
+            "psi_warning": 0.10,
+        },
+        "paths": {
+            "default_train": "data/raw/train.csv",
+            "default_test": "data/raw/new_dataset.csv",
+            "model_dir": "models/",
+        }
+    }
+    
+    if config_path is None:
+        config_path = Path(__file__).resolve().parents[1] / "config" / "drift_config.yaml"
+    else:
+        config_path = Path(config_path)
+    
+    if not config_path.exists():
+        logger.warning(f"Config not found at {config_path}, using defaults")
+        return DEFAULTS
+    
+    try:
+        with open(config_path, "r") as f:
+            config = yaml.safe_load(f)
+        # Merge với defaults để tránh missing keys
+        for section, values in DEFAULTS.items():
+            if section not in config:
+                config[section] = values
+            elif isinstance(values, dict):
+                for key, val in values.items():
+                    config[section].setdefault(key, val)
+        logger.info(f"Loaded config from {config_path}")
+        return config
+    except yaml.YAMLError as e:
+        logger.error(f"Failed to parse config: {e}")
+        return DEFAULTS
+    except Exception as e:
+        logger.warning(f"Config load error: {e}, using defaults")
+        return DEFAULTS
+        
 class DriftDetector:
     def __init__(self, model_dir: Path = None,
                  p_val_threshold: float = 0.05,
@@ -42,7 +87,7 @@ class DriftDetector:
             'Contract Length',
             'Churn'
         ]
-
+      
         self.model = self._load_model()
 
     def _load_model(self):
@@ -51,7 +96,7 @@ class DriftDetector:
             return None
 
         # List of potential paths to look for the model
-        # 1. Root models folder (where you just pushed it)
+        # 1. Root models folder 
         # 2. The symlink 'latest' folder
         # 3. Fallback via LATEST_VERSION.txt
         
@@ -82,6 +127,36 @@ class DriftDetector:
 
         logger.warning("No model found! System will skip prediction drift check.")
         return None
+    
+    def check_integrity(self, df: pd.DataFrame, name: str):
+        """Kiểm tra tính toàn vẹn cơ bản trước khi check drift"""
+        issues = []
+        
+        # 1. Check null values (Ví dụ: ngưỡng 20%)
+        null_counts = df.isnull().mean()
+        high_nulls = null_counts[null_counts > 0.2]
+        if not high_nulls.empty:
+            issues.append(f"High missing values in: {high_nulls.to_dict()}")
+
+        # 2. Check schema (Cột tối thiểu phải có)
+        required = [c for c in self.exclude_cols if c != 'Churn']
+        missing = [c for c in required if c not in df.columns]
+        if missing:
+            issues.append(f"Missing required columns: {missing}")
+
+        # 3. Check constant features (Cột chỉ có 1 giá trị duy nhất - lỗi thu thập data)
+        for col in df.columns:
+            if df[col].nunique() <= 1 and col not in self.exclude_cols:
+                issues.append(f"Constant feature detected: {col}")
+
+        if issues:
+            for issue in issues:
+                logger.error(f"[INTEGRITY FAIL] {name}: {issue}")
+            return False
+        
+        logger.info(f"[INTEGRITY OK] {name} passed basic checks.")
+        return True
+    
     # -----------------------------
     # PSI Calculation
     # -----------------------------
@@ -153,6 +228,12 @@ class DriftDetector:
             ref_pred = self.model.predict_proba(X_ref)[:, 1]
             curr_pred = self.model.predict_proba(X_curr)[:, 1]
 
+            confidence_mean = curr_pred.mean()
+            confidence_std = curr_pred.std()
+
+            logger.info(f"Confidence mean: {confidence_mean:.4f}")
+            logger.info(f"Confidence std: {confidence_std:.4f}")
+
             psi_val = self.calculate_psi(ref_pred, curr_pred)
             _, p_val = ks_2samp(ref_pred, curr_pred)
 
@@ -205,17 +286,18 @@ class DriftDetector:
 
         df_ref = pd.read_csv(train_path)
         df_curr = pd.read_csv(test_path)
-
+        
+        if not self.check_integrity(df_curr, "Serving Data"):
+            return ["INTEGRITY_FAILURE"], False
+        
         logger.info("=" * 80)
         logger.info(f"DRIFT CHECK: {train_path.name} vs {test_path.name}")
         logger.info("=" * 80)
 
         drifted_features = []
-
         for col in df_ref.columns:
             if col in self.exclude_cols or col not in df_curr.columns:
                 continue
-
             if pd.api.types.is_numeric_dtype(df_ref[col]) and df_ref[col].nunique() > 10:
                 if self.detect_numerical_drift(df_ref[col], df_curr[col], col):
                     drifted_features.append(col)
@@ -223,9 +305,18 @@ class DriftDetector:
                 if self.detect_categorical_drift(df_ref[col], df_curr[col], col):
                     drifted_features.append(col)
 
-        # Prediction Drift
         pred_drift = self.detect_prediction_drift(df_ref, df_curr)
 
+        os.makedirs("logs", exist_ok=True)
+        metrics_log = {
+            "timestamp": datetime.now().isoformat(),
+            "drifted_features": drifted_features,
+            "prediction_drift": bool(pred_drift),
+            "integrity_status": "PASS" if "INTEGRITY_FAILURE" not in drifted_features else "FAIL"
+        }
+        with open("logs/monitoring.json", "a") as f:
+            f.write(json.dumps(metrics_log) + "\n")
+            
         return drifted_features, pred_drift
 
 
@@ -234,37 +325,40 @@ class DriftDetector:
 # -----------------------------
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Drift Monitoring Tool")
-
     parser.add_argument("--ref", help="Train dataset")
     parser.add_argument("--curr", help="Serving dataset")
-    parser.add_argument("--model_dir", help="Model directory (for prediction drift)")
-
-    BASE_DIR = Path(__file__).resolve().parents[2]
-    DEFAULT_TRAIN = BASE_DIR / "data/raw/train.csv"
-    DEFAULT_TEST = BASE_DIR / "data/raw/test.csv"
-    DEFAULT_MODEL = BASE_DIR / "models"
+    parser.add_argument("--model_dir", help="Model directory")
+    parser.add_argument("--config", help="Path to config file", default=None)  
     
     args = parser.parse_args()
-
-    ref_path = Path(args.ref) if args.ref else DEFAULT_TRAIN
-    curr_path = Path(args.curr) if args.curr else DEFAULT_TEST
-    model_dir = Path(args.model_dir) if args.model_dir else DEFAULT_MODEL
-
-    detector = DriftDetector(model_dir=model_dir)
-
+    
+    # Load config 
+    config = load_config(args.config)
+    
+    # Resolve paths and BASE_DIR
+    BASE_DIR = Path(__file__).resolve().parents[1]
+    
+    ref_path = Path(args.ref) if args.ref else BASE_DIR / config["paths"]["default_train"]
+    curr_path = Path(args.curr) if args.curr else BASE_DIR / config["paths"]["default_test"]
+    model_dir = Path(args.model_dir) if args.model_dir else BASE_DIR / config["paths"]["model_dir"]
+    
+    # Init detector and config values
+    detector = DriftDetector(
+        model_dir=model_dir,
+        p_val_threshold=config["drift"]["p_value_threshold"],
+        psi_threshold=config["drift"]["psi_threshold"]
+    )
+    
     drifted_features, pred_drift = detector.run(ref_path, curr_path)
-
+    
     logger.info("-" * 80)
 
     # -----------------------------
     # DECISION LOGIC
     # -----------------------------
+    if len(drifted_features) > 0:
+        logger.warning("Drift detected (non-critical)")
+
     if len(drifted_features) >= 3 or pred_drift:
         logger.error("CRITICAL DRIFT DETECTED")
         detector.trigger_retraining(curr_path)
-
-    elif len(drifted_features) > 0:
-        logger.warning(f"MINOR DRIFT: {drifted_features}")
-
-    else:
-        logger.info("SYSTEM STABLE")

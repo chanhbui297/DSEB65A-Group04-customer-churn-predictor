@@ -1,16 +1,17 @@
 name: Train Model
-
 on:
   workflow_dispatch:
   push:
     paths:
       - "src/models/**"
-      - "data/**"
+      - "data/raw/*.csv"  
+      - "requirements.txt"
 
 jobs:
   train:
     runs-on: ubuntu-latest
-
+    timeout-minutes: 30
+    
     steps:
       - uses: actions/checkout@v4
 
@@ -18,8 +19,14 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Setup uv cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/uv
+          key: ${{ runner.os }}-uv-${{ hashFiles('**/requirements.txt') }}
+
       - run: pip install uv
-      - run: uv pip install -r requirements.txt --system
+      - run: uv pip install -r requirements.txt
 
       - name: Train
         run: |
@@ -27,7 +34,17 @@ jobs:
             --data data/raw/train.csv \
             --model_dir models
 
+      - name: Validate model
+        run: |
+          python -c "
+          import joblib, sys
+          model = joblib.load('models/model.pkl')
+          print('Model loaded and valid')
+          "
+
       - uses: actions/upload-artifact@v4
+        if: success()  
         with:
-          name: model
+          name: trained-model-${{ github.run_id }}
           path: models/
+          retention-days: 7  

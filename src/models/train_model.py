@@ -188,7 +188,7 @@ def main(args):
             yaml.dump(config, f, default_flow_style=False)
 
         # 12. Update latest pointer & Auto-copy to root
-        update_latest_symlink(args.model_dir, version_dir)
+        # update_latest_symlink(args.model_dir, version_dir)
 
         # 13. Summary
         print("-" * 40)

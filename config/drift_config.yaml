@@ -1,0 +1,17 @@
+drift:
+  p_value_threshold: 0.05      # KS/Chi2 significance level
+  psi_threshold: 0.20          # Critical drift threshold
+  psi_warning: 0.10            # Warning threshold (optional)
+  
+paths:
+  default_train: data/raw/train.csv
+  default_test: data/raw/new_dataset.csv
+  model_dir: models/
+  
+alerting:
+  critical_drift_count: 3      # Số features drift để trigger retrain
+  enable_github_trigger: true
+  
+sampling:
+  max_rows: 50000              # Sample nếu data lớn hơn
+  random_state: 42

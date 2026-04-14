@@ -1,0 +1,2 @@
+{"timestamp": "2026-04-14T22:52:30.056260", "drifted_features": ["Age", "Gender", "Support Calls", "Payment Delay", "Total Spend"], "prediction_drift": true, "integrity_status": "PASS"}
+{"timestamp": "2026-04-14T22:58:51.650810", "drifted_features": ["Age", "Gender", "Support Calls", "Payment Delay", "Total Spend"], "prediction_drift": true, "integrity_status": "PASS"}

@@ -1,13 +1,16 @@
 name: Drift Monitoring
-
 on:
   schedule:
-    - cron: "0 * * * *"
+    - cron: "0 * * * *"  # Every hour
   workflow_dispatch:
 
 jobs:
   monitor:
     runs-on: ubuntu-latest
+    timeout-minutes: 15  
+    permissions:
+      contents: read
+      actions: write    
 
     steps:
       - uses: actions/checkout@v4
@@ -16,15 +19,32 @@ jobs:
         with:
           python-version: '3.11'
 
+      # Cache dependencies with uv
+      - name: Setup uv cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/uv
+          key: ${{ runner.os }}-uv-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-
+
       - run: pip install uv
       - run: uv pip install -r requirements.txt --system
 
       - name: Run Drift Detection
         env:
-          GITHUB_TOKEN: ${{ secrets.TOKENFORMLOPS }} 
+          TOKENFORMLOPS: ${{ secrets.TOKENFORMLOPS }} 
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
-          python src/monitoring/detect_drift.py \
+          python monitoring/detect_drift.py \
             --ref data/raw/train.csv \
-            --curr data/raw/test.csv \
+            --curr data/raw/new_dataset.csv \
             --model_dir models
+
+      # Notify if critical 
+      - name: Notify on critical drift
+        if: failure()  # parse log to check "CRITICAL"
+        run: |
+          curl -X POST ${{ secrets.SLACK_WEBHOOK }} \
+            -H 'Content-type: application/json' \
+            -d '{"text":" Critical drift detected! Check: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"}'

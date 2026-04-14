@@ -1,32 +1,62 @@
 name: Retrain
-
 on:
-  workflow_dispatch:
+  workflow_dispatch:  # Trigger by detect_drift.py
 
 jobs:
   retrain:
     runs-on: ubuntu-latest
-
+    timeout-minutes: 30
+    permissions:
+      contents: write  # To push model
+    
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  
 
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - run: pip install uv
-      - run: uv pip install -r requirements.txt --system
+      - name: Setup uv cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/uv
+          key: ${{ runner.os }}-uv-${{ hashFiles('**/requirements.txt') }}
 
-      - name: Retrain
+      - run: pip install uv
+      - run: uv pip install -r requirements.txt
+
+      # Backup model 
+      - name: Backup current model
         run: |
-          python src/models/train.py \
+          mkdir -p models/backup
+          cp models/model.pkl models/backup/model_$(date +%Y%m%d_%H%M).pkl 2>/dev/null || echo "No model to backup"
+
+      - name: Train model
+        run: |
+          python src/models/train_model.py \
             --data data/raw/train.csv \
             --model_dir models
 
-      - name: Commit model
+      - name: Evaluate and deploy
+        run: |
+          python src/models/evaluate.py \
+            --model_dir models \
+            --test data/raw/new_dataset.csv
+
+      - name: Commit model (only if evaluate passed)
+        if: success()
         run: |
           git config --global user.name "mlops-bot"
           git config --global user.email "bot@github.com"
           git add models/
-          git commit -m "auto retrain"
-          git push
+          git commit -m "auto-retrain: ${{ github.run_id }} [skip ci]"
+          git push https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git HEAD:main
+
+      - name: Notify result
+        run: |
+          STATUS="${{ job.status }}"
+          curl -X POST ${{ secrets.SLACK_WEBHOOK }} \
+            -H 'Content-type: application/json' \
+            -d "{\"text\":\"Retrain $STATUS: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}"
