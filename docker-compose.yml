@@ -29,3 +29,6 @@ services:
       - "3000:3000"
     depends_on:
       - prometheus
+    volumes:
+      - ./monitoring/Grafana/dashboards:/var/lib/grafana/dashboards
+      - ./monitoring/Grafana/provisioning:/etc/grafana/provisioning

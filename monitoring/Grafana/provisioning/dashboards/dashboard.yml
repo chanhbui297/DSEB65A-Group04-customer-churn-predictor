@@ -1,0 +1,6 @@
+apiVersion: 1
+providers:
+  - name: 'Monitoring dashboards'
+    type: file
+    options:
+      path: /var/lib/grafana/dashboards
