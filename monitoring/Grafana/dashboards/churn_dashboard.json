@@ -1155,7 +1155,7 @@
       }
     },
     "links": [],
-    "liveNow": false,
+    "liveNow": true,
     "preload": false,
     "tags": [],
     "timeSettings": {
