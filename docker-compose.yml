@@ -32,3 +32,12 @@ services:
     volumes:
       - ./monitoring/Grafana/dashboards:/var/lib/grafana/dashboards
       - ./monitoring/Grafana/provisioning:/etc/grafana/provisioning
+  
+  traffic:
+    build: .
+    container_name: traffic
+    command: python scripts/traffic.py
+    depends_on:
+      - fastapi
+    environment:
+      - API_URL=http://fastapi:8000/predict
