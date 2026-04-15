@@ -30,9 +30,9 @@ services:
     depends_on:
       - prometheus
     volumes:
-      - ./monitoring/Grafana/dashboards:/var/lib/grafana/dashboards
+      - ./monitoring/Grafana/dashboards:/etc/grafana/dashboards
       - ./monitoring/Grafana/provisioning:/etc/grafana/provisioning
-  
+      
   traffic:
     build: .
     container_name: traffic

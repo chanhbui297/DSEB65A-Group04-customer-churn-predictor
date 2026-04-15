@@ -62,7 +62,8 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "cfj2h6s1t5ypse"
+                        "type": "prometheus",
+                        "uid": "Prometheus"
                       },
                       "spec": {
                         "editorMode": "code",
@@ -180,7 +181,8 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "cfj2h6s1t5ypse"
+                        "type": "prometheus",
+                        "uid": "Prometheus"
                       },
                       "spec": {
                         "editorMode": "code",
@@ -323,7 +325,8 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "cfj2h6s1t5ypse"
+                        "type": "prometheus",
+                        "uid": "Prometheus"
                       },
                       "spec": {
                         "editorMode": "code",
@@ -441,7 +444,8 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "cfj2h6s1t5ypse"
+                        "type": "prometheus",
+                        "uid": "Prometheus"
                       },
                       "spec": {
                         "editorMode": "code",
@@ -559,11 +563,12 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "cfj2h6s1t5ypse"
+                        "type": "prometheus",
+                        "uid": "Prometheus"
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum by (label)(model_predictions_total)",
+                        "expr": "increase(model_predictions_total[5m])",
                         "legendFormat": "__auto",
                         "range": true
                       }
@@ -677,7 +682,8 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "cfj2h6s1t5ypse"
+                        "type": "prometheus",
+                        "uid": "Prometheus"
                       },
                       "spec": {
                         "editorMode": "code",
@@ -795,7 +801,8 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "cfj2h6s1t5ypse"
+                        "type": "prometheus",
+                        "uid": "Prometheus"
                       },
                       "spec": {
                         "editorMode": "code",
@@ -913,7 +920,8 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "cfj2h6s1t5ypse"
+                        "type": "prometheus",
+                        "uid": "Prometheus"
                       },
                       "spec": {
                         "editorMode": "code",
