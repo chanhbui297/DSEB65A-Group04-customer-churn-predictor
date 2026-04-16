@@ -39,7 +39,7 @@ jobs:
           # Use uv to install project and deps into the runner system Python
           # (uv sync does not accept --system on current uv version)
           uv pip install . dvc[s3] ruff --system
-          
+
       # 5. Fail-Fast: Check code quality before expensive operations
       - name: Run Code Linting (Ruff)
         run: |
@@ -51,11 +51,19 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.DVC_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.DVC_SECRET_ACCESS_KEY }}
+          DAGSHUB_S3_ENDPOINT_URL: ${{ secrets.DAGSHUB_S3_ENDPOINT_URL }}
         run: |
-          # Configure DVC to use the secret endpoint for DagsHub S3
-          dvc remote modify origin --local endpointurl ${{ secrets.DAGSHUB_S3_ENDPOINT_URL }}
-          # Pull all artifacts required for validation
-          dvc pull
+          # Configure DVC remote with runner-local credentials
+          dvc remote modify origin --local access_key_id $AWS_ACCESS_KEY_ID
+          dvc remote modify origin --local secret_access_key $AWS_SECRET_ACCESS_KEY
+          dvc remote modify origin --local endpointurl $DAGSHUB_S3_ENDPOINT_URL
+
+          # Debug: list remotes and verbose status (safe: does not print secrets)
+          dvc remote list -v || true
+          dvc status -v || true
+
+          # Attempt pull; fail with clear message on error
+          dvc pull --verbose || (echo "::error::DVC pull failed (403/permissions or wrong endpoint). Check GitHub secrets and remote name 'origin'." && exit 1)
 
       # 7. Sanity Check: Ensure critical files exist for reproducibility
       - name: Verify Artifact Existence
