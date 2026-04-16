@@ -33,13 +33,19 @@ jobs:
           curl -LsSf https://astral.sh/uv/install.sh | sh
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
-      # 4. Fail-Fast: Check code quality before expensive operations
+      # 4. Install Python dependencies declared in pyproject.toml via uv
+      - name: Install dependencies
+        run: |
+          # Use uv to sync project dependencies into the runner environment
+          uv sync --system --no-dev
+
+      # 5. Fail-Fast: Check code quality before expensive operations
       - name: Run Code Linting (Ruff)
         run: |
           echo "Executing Ruff to enforce clean code standards..."
           ruff check src/ streamlit_app/
 
-      # 5. Connect to DagsHub and pull large data artifacts
+      # 6. Connect to DagsHub and pull large data artifacts
       - name: DVC Authentication and Pull
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.DVC_ACCESS_KEY_ID }}
@@ -50,7 +56,7 @@ jobs:
           # Pull all artifacts required for validation
           dvc pull
 
-      # 6. Sanity Check: Ensure critical files exist for reproducibility
+      # 7. Sanity Check: Ensure critical files exist for reproducibility
       - name: Verify Artifact Existence
         run: |
           echo "Verifying pulled files..."
@@ -59,7 +65,7 @@ jobs:
           test -f data/raw/train.csv || (echo "::error::train.csv missing!" && exit 1)
           echo "✅ All essential files are present and verified."
 
-      # 7. Reproducibility Check: Validate Dockerization
+      # 8. Reproducibility Check: Validate Dockerization
       # This ensures the professor can run your project with a single command
       - name: Dry-Run Docker Builds
         run: |
