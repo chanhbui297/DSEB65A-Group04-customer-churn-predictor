@@ -34,7 +34,7 @@ jobs:
 
       # 4. Install Python dependencies defined in pyproject.toml
       - name: Install Dependencies
-        run: uv sync --system --no-dev
+        run: uv pip install . dvc[s3] --system
 
       # 5. Authenticate DVC and pull data from DagsHub
       - name: Pull Data from DVC Remote
