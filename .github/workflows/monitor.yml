@@ -103,16 +103,23 @@ jobs:
           path: logs/
           retention-days: 7
 
-      - name: Create Issue Alert
+- name: Create Issue Alert
         if: failure() || steps.check_drift.outputs.critical_drift == 'true'
         env:
-          GITHUB_TOKEN: ${{ secrets.TOKENFORMLOPS }}
+          # gh CLI natively respects GH_TOKEN. Using the built-in token.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           STATUS="${{ job.status }}"
-          DRIFT_STATUS="Detected" if [ "${{ steps.check_drift.outputs.critical_drift }}" = "true" ]; else "None"; fi
+          
+          # FIXED: Proper Bash if-else syntax
+          if [ "${{ steps.check_drift.outputs.critical_drift }}" = "true" ]; then
+            DRIFT_STATUS="Detected"
+          else
+            DRIFT_STATUS="None"
+          fi
           
           gh issue create \
-            --title " Drift Alert: ${{ github.repository }} #${{ github.run_id }}" \
+            --title "Drift Alert: ${{ github.repository }} #${{ github.run_id }}" \
             --body "### Status
           • Workflow: \`${{ github.workflow }}\`
           • Result: \`${STATUS}\`
@@ -127,5 +134,5 @@ jobs:
           2. Review drift details in log file
           3. Verify if auto-retrain was triggered
           4. Investigate data quality if needed" \
-            --label "mlops,drift,alert" \
+            --label "mlops, drift, alert" \
             2>/dev/null || echo "Could not create GitHub issue"
