@@ -129,4 +129,5 @@ jobs:
             2. Review drift details in log file
             3. Verify if auto-retrain was triggered
             4. Investigate data quality if needed" \
-            --label "mlops,drift,alert" 2>/dev/null || echo "Could not create GitHub issue"
+            gh auth status || true
+            gh issue create ... || { echo "gh issue create failed (exit $? )"; gh issue list --limit 1 || true; exit 0; }
