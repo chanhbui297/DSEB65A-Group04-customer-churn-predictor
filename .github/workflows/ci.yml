@@ -36,9 +36,10 @@ jobs:
       # 4. Install Python dependencies declared in pyproject.toml via uv
       - name: Install dependencies
         run: |
-          # Use uv to sync project dependencies into the runner environment
-          uv sync --system --no-dev
-
+          # Use uv to install project and deps into the runner system Python
+          # (uv sync does not accept --system on current uv version)
+          uv pip install . dvc[s3] ruff --system
+          
       # 5. Fail-Fast: Check code quality before expensive operations
       - name: Run Code Linting (Ruff)
         run: |
