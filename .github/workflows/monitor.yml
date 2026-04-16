@@ -118,8 +118,8 @@ jobs:
             --title "Drift Alert: ${{ github.repository }} #${{ github.run_id }}" \
             --body "### Status
             • Workflow: \`${{ github.workflow }}\`
-            • Result: \`${{STATUS}}\`
-            • Critical Drift: \`${{DRIFT_STATUS}}\`
+            • Result: \`${STATUS}\`
+            • Critical Drift: \`${DRIFT_STATUS}\`
 
             ### Details
             • Run Link: [View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
