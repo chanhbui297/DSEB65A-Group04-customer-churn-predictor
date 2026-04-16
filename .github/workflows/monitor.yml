@@ -108,8 +108,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Authenticate gh with the workflow token
-          echo "$GITHUB_TOKEN" | gh auth login --with-token
+          # GH CLI will use the provided GITHUB_TOKEN env var; no interactive login required
 
           STATUS="${{ job.status }}"
           DRIFT_STATUS=$([ "${{ steps.check_drift.outputs.critical_drift }}" = "true" ] && echo "Detected" || echo "None")
