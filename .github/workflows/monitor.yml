@@ -116,23 +116,26 @@ jobs:
           # Diagnostic: show GH auth status to help debug failures (non-fatal)
           gh auth status || true
 
-          # Use heredoc to pass multi-line body safely to gh
+          # Build issue body into a temp file to avoid heredoc/indentation problems
+          ISSUE_FILE=$(mktemp /tmp/issue_body.XXXXXX)
+          printf '%s
+' "### Status" \
+            "• Workflow: ${{ github.workflow }}" \
+            "• Result: ${STATUS}" \
+            "• Critical Drift: ${DRIFT_STATUS}" \
+            "" \
+            "### Details" \
+            "• Run Link: [View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" \
+            "• Artifacts: [Download logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" \
+            "" \
+            "### Action Required" \
+            "1. Check uploaded artifacts for monitoring.log" \
+            "2. Review drift details in log file" \
+            "3. Verify if auto-retrain was triggered" \
+            "4. Investigate data quality if needed" > "$ISSUE_FILE"
+
           gh issue create \
             --title "Drift Alert: ${{ github.repository }} #${{ github.run_id }}" \
             --label "mlops,drift,alert" \
-            --body-file - <<EOF || { echo "gh issue create failed (exit $?)"; exit 0; }
-            ### Status
-            • Workflow: `${{ github.workflow }}`
-            • Result: `${STATUS}`
-            • Critical Drift: `${DRIFT_STATUS}`
-
-            ### Details
-            • Run Link: [View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-            • Artifacts: [Download logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
-
-            ### Action Required
-            1. Check uploaded artifacts for `monitoring.log`
-            2. Review drift details in log file
-            3. Verify if auto-retrain was triggered
-            4. Investigate data quality if needed
-            EOF
+            --body-file "$ISSUE_FILE" || { echo "gh issue create failed (exit $?)"; rm -f "$ISSUE_FILE"; exit 0; }
+          rm -f "$ISSUE_FILE"
