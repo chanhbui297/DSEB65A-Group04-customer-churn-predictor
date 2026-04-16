@@ -112,18 +112,14 @@ jobs:
           echo "$GITHUB_TOKEN" | gh auth login --with-token
 
           STATUS="${{ job.status }}"
-          if [ "${{ steps.check_drift.outputs.critical_drift }}" = "true" ]; then
-            DRIFT_STATUS="Detected"
-          else
-            DRIFT_STATUS="None"
-          fi
+          DRIFT_STATUS=$([ "${{ steps.check_drift.outputs.critical_drift }}" = "true" ] && echo "Detected" || echo "None")
 
           gh issue create \
             --title "Drift Alert: ${{ github.repository }} #${{ github.run_id }}" \
             --body "### Status
             • Workflow: \`${{ github.workflow }}\`
-            • Result: \`${STATUS}\`
-            • Critical Drift: \`${DRIFT_STATUS}\`
+            • Result: \`${{STATUS}}\`
+            • Critical Drift: \`${{DRIFT_STATUS}}\`
 
             ### Details
             • Run Link: [View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
@@ -134,4 +130,4 @@ jobs:
             2. Review drift details in log file
             3. Verify if auto-retrain was triggered
             4. Investigate data quality if needed" \
-                        --label "mlops,drift,alert" 2>/dev/null || echo "Could not create GitHub issue"
+            --label "mlops,drift,alert" 2>/dev/null || echo "Could not create GitHub issue"
