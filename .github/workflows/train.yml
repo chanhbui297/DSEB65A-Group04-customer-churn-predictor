@@ -25,17 +25,18 @@ jobs:
         with:
           python-version: "3.11"
 
-      # 3. Set up uv (cached) and install dependencies including DVC
+      # 3. Set up uv (cached)
       - name: Set up uv
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
 
-      - name: Install dependencies
-        run: uv pip install . dvc[s3] --system
+      # 4. Install Python dependencies defined in pyproject.toml
+      - name: Install Dependencies
+        run: uv sync --system --no-dev
 
-      # 4. Authenticate DVC and pull data from DagsHub
+      # 5. Authenticate DVC and pull data from DagsHub
       - name: Pull Data from DVC Remote
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.DVC_ACCESS_KEY_ID }}
@@ -49,10 +50,6 @@ jobs:
 
           # Pull training data tracked by DVC
           dvc pull ${{ env.DATA_PATH }}.dvc || echo "Warning: DVC pull failed"
-
-      # 5. Install Python dependencies defined in pyproject.toml
-      - name: Install Dependencies
-        run: uv sync --system --no-dev
 
       # 6. Run the training script and log results to DagsHub MLflow
       - name: Execute Training Script
