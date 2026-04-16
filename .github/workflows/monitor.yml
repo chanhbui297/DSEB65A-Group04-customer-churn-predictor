@@ -104,35 +104,34 @@ jobs:
           retention-days: 7
 
       - name: Create Issue Alert
-              if: failure() || steps.check_drift.outputs.critical_drift == 'true'
-              env:
-                # Use the built-in GITHUB_TOKEN for authentication
-                GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              run: |
-                STATUS="${{ job.status }}"
-                
-                # FIXED BASH SYNTAX:
-                if [ "${{ steps.check_drift.outputs.critical_drift }}" = "true" ]; then
-                  DRIFT_STATUS="Detected"
-                else
-                  DRIFT_STATUS="None"
-                fi
-                
-                # Create the issue using the verified variables
-                gh issue create \
-                  --title "🚨 Drift Alert: ${{ github.repository }} #${{ github.run_id }}" \
-                  --body "### Status
-                • Workflow: \`${{ github.workflow }}\`
-                • Result: \`${STATUS}\`
-                • Critical Drift: \`${DRIFT_STATUS}\`
-                
-                ### Details
-                • Run Link: [View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-                • Artifacts: [Download logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
-                
-                ### Action Required
-                1. Check uploaded artifacts for \`monitoring.log\`
-                2. Review drift details in log file
-                3. Verify if auto-retrain was triggered
-                4. Investigate data quality if needed" \
-                  --label "mlops,drift,alert"
+        if: failure() || steps.check_drift.outputs.critical_drift == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Authenticate gh with the workflow token
+          echo "$GITHUB_TOKEN" | gh auth login --with-token
+
+          STATUS="${{ job.status }}"
+          if [ "${{ steps.check_drift.outputs.critical_drift }}" = "true" ]; then
+            DRIFT_STATUS="Detected"
+          else
+            DRIFT_STATUS="None"
+          fi
+
+          gh issue create \
+            --title "Drift Alert: ${{ github.repository }} #${{ github.run_id }}" \
+            --body "### Status
+            • Workflow: \`${{ github.workflow }}\`
+            • Result: \`${STATUS}\`
+            • Critical Drift: \`${DRIFT_STATUS}\`
+
+            ### Details
+            • Run Link: [View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            • Artifacts: [Download logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+            ### Action Required
+            1. Check uploaded artifacts for \`monitoring.log\`
+            2. Review drift details in log file
+            3. Verify if auto-retrain was triggered
+            4. Investigate data quality if needed" \
+                        --label "mlops,drift,alert" 2>/dev/null || echo "Could not create GitHub issue"
