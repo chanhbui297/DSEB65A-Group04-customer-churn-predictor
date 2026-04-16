@@ -45,7 +45,7 @@ jobs:
           dvc remote modify origin --local endpointurl $DAGSHUB_S3_ENDPOINT_URL
 
           # Pull training data tracked by DVC
-          dvc pull data/raw/train.csv.dvc || echo "Warning: DVC pull failed"
+          dvc pull ${{ env.DATA_PATH }}.dvc || echo "Warning: DVC pull failed"
 
       # 5. Install Python dependencies defined in pyproject.toml
       - name: Install Dependencies
