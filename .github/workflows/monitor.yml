@@ -119,7 +119,7 @@ jobs:
           # Build issue body into a temp file to avoid heredoc/indentation problems
           ISSUE_FILE=$(mktemp /tmp/issue_body.XXXXXX)
           printf '%s
-' "### Status" \
+          ' "### Status" \
             "• Workflow: ${{ github.workflow }}" \
             "• Result: ${STATUS}" \
             "• Critical Drift: ${DRIFT_STATUS}" \
