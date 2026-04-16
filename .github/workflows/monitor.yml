@@ -136,6 +136,5 @@ jobs:
 
           gh issue create \
             --title "Drift Alert: ${{ github.repository }} #${{ github.run_id }}" \
-            --label "mlops,drift,alert" \
             --body-file "$ISSUE_FILE" || { echo "gh issue create failed (exit $?)"; rm -f "$ISSUE_FILE"; exit 0; }
           rm -f "$ISSUE_FILE"
