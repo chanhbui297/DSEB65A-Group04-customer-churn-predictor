@@ -104,7 +104,7 @@ jobs:
       - name: Create Pull Request for New Model
         uses: peter-evans/create-pull-request@v6
         with:
-          token: ${{ ecrets.GITHUB_TOKEN}}
+          token: ${{ secrets.GITHUB_TOKEN}}
           commit-message: "auto-retrain: update model [run=${{ github.run_id }}]"
           branch: "model-update-${{ github.run_id }}"
           title: "MLOps Auto-Retrain: New Model Available"
@@ -125,7 +125,7 @@ jobs:
       - name: Notify Failure
         if: failure()
         env:
-          GH_TOKEN: ${{ ecrets.GITHUB_TOKEN}}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN}}
         run: |
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           gh issue create \
