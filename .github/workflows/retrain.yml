@@ -1,4 +1,3 @@
-# .github/workflows/retrain.yml
 name: Retrain Model
 
 on:
@@ -107,6 +106,7 @@ jobs:
           cat ${{ env.MODEL_DIR }}/metadata.json | python -m json.tool | grep -A 10 '"metrics"'
 
       # 7. (Optional) Backup old model BEFORE commit
+      - name: Backup and Push Models (via DVC)
         if: success()  # Only commit if training succeeded
         run: |
           git config --global user.name "mlops-bot"
