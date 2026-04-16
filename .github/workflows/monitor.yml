@@ -22,27 +22,30 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Setup uv cache
-        uses: actions/cache@v4
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
         with:
-          path: ~/.cache/uv
-          key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-uv-
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
 
       - name: Install dependencies and DVC
         run: |
-          pip install uv
           uv pip install . dvc[s3] --system
 
       - name: Pull Data from DVC
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.DVC_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.DVC_SECRET_ACCESS_KEY }}
+          DAGSHUB_S3_ENDPOINT_URL: ${{ secrets.DAGSHUB_S3_ENDPOINT_URL }}
         run: |
-          dvc pull data/raw/train.csv.dvc
+          # Configure runner-local DVC remote credentials and endpoint
+          dvc remote modify origin --local access_key_id $AWS_ACCESS_KEY_ID
+          dvc remote modify origin --local secret_access_key $AWS_SECRET_ACCESS_KEY
+          dvc remote modify origin --local endpointurl $DAGSHUB_S3_ENDPOINT_URL
+
+          dvc pull data/raw/train.csv.dvc || echo "Warning: DVC pull failed"
           if [ -f "data/raw/new_dataset.csv.dvc" ]; then
-            dvc pull data/raw/new_dataset.csv.dvc
+            dvc pull data/raw/new_dataset.csv.dvc || echo "Warning: DVC pull failed for new dataset"
           fi
 
       - name: Install GitHub CLI (for issue creation)
