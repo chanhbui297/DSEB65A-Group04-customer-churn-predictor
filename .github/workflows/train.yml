@@ -25,12 +25,15 @@ jobs:
         with:
           python-version: "3.11"
 
-      # 3. Set up uv (cached) — preferred installer/action
+      # 3. Set up uv (cached) and install dependencies including DVC
       - name: Set up uv
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
+
+      - name: Install dependencies
+        run: uv pip install . dvc[s3] --system
 
       # 4. Authenticate DVC and pull data from DagsHub
       - name: Pull Data from DVC Remote
