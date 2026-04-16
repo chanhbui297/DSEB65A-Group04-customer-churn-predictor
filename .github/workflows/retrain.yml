@@ -92,18 +92,18 @@ jobs:
             --data ${{ env.DATA_PATH }} \
             --model_dir ${{ env.MODEL_DIR }} \
             --config ${{ env.DRIFT_CONFIG }} \
-            --n_iter 15  # Adjust based on time budget (10-30 typical)
-          
+            --n_iter 15
+
           # Verify outputs
           echo "Verifying artifacts..."
           test -f "${{ env.MODEL_DIR }}/model.pkl" && echo "model.pkl exists" || exit 1
           test -f "${{ env.MODEL_DIR }}/metadata.json" && echo "metadata.json exists" || exit 1
           test -f "${{ env.MODEL_DIR }}/baseline_stats.json" && echo "baseline_stats.json exists" || exit 1
           test -d "${{ env.MODEL_DIR }}/latest" && echo "latest/ directory exists" || exit 1
-          
-          # Show latest metrics
+
+          # Show latest metrics (tolerate if grep finds nothing)
           echo "Latest model metrics:"
-          cat ${{ env.MODEL_DIR }}/metadata.json | python -m json.tool | grep -A 10 '"metrics"'
+          cat ${{ env.MODEL_DIR }}/metadata.json | python -m json.tool | grep -A 10 '"metrics"' || true
 
       # 7. (Optional) Backup old model BEFORE commit
       - name: Backup and Push Models (via DVC)
