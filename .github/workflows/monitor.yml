@@ -31,7 +31,24 @@ jobs:
       - name: Install dependencies and DVC
         run: |
           uv pip install . dvc[s3] --system
+      - name: DVC debug info
+        run: |
+          echo ">>> Python / uv / dvc versions"
+          python --version || true
+          uv --version || true
+          python -c "import dvc; print('dvc', dvc.__version__)" || dvc --version || true
 
+          echo ">>> Check env (masked)"
+          echo "DAGSHUB_S3_ENDPOINT_URL=${DAGSHUB_S3_ENDPOINT_URL:+set}"
+          echo "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:+set}"
+          echo "AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:+set}"
+
+          echo ">>> Show dvc remotes and config"
+          cat .dvc/config 2>/dev/null || true
+          ls -la
+          dvc remote list || true
+          dvc remote list -v || true
+          dvc status -c || true
       - name: Pull Data from DVC
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.DVC_ACCESS_KEY_ID }}
