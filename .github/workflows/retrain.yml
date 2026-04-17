@@ -96,6 +96,9 @@ jobs:
 
           # Track the heavy binary
           dvc add ${{ env.MODEL_DIR }}/model.pkl
+          dvc add ${{ env.MODEL_DIR }}/metadata.json
+          dvc add ${{ env.MODEL_DIR }}/baseline_stats.json
+          dvc add ${{ env.MODEL_DIR }}/LATEST_VERSION.txt
           
           # Upload to remote storage
           dvc push || (echo "::error::DVC push failed." && exit 1)
@@ -117,9 +120,9 @@ jobs:
           labels: "mlops, auto-retrain"
           add-paths: |
             models/model.pkl.dvc
-            models/metadata.json
-            models/baseline_stats.json
-            models/LATEST_VERSION.txt
+            models/metadata.json.dvc
+            models/baseline_stats.json.dvc
+            models/LATEST_VERSION.txt.dvc
 
       # 9. Notify results on Failure
       - name: Notify Failure
