@@ -1,0 +1,5 @@
+outs:
+- md5: 39b2a8e976ba063616296d9f61b3ae05
+  size: 763
+  hash: md5
+  path: metadata.json

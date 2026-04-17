@@ -1,0 +1,5 @@
+outs:
+- md5: 4c5d9f7264a663f6233a4b54de6f26d5
+  size: 19
+  hash: md5
+  path: LATEST_VERSION.txt
