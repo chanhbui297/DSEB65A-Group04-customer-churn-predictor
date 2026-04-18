@@ -1,13 +1,13 @@
 {
-  "version": "run_20260416_160817",
-  "timestamp": "2026-04-16T16:18:33.302347",
+  "version": "run_20260418_133312",
+  "timestamp": "2026-04-18T13:42:37.845406",
   "metrics": {
-    "accuracy": 0.9844272800480905,
-    "precision": 0.9998766422007032,
-    "recall": 0.97266,
-    "f1": 0.986080556372226,
-    "f1_macro": 0.9842044457644643,
-    "roc_auc": 0.9880822721198941
+    "accuracy": 0.9843016265511217,
+    "precision": 0.9999794297938865,
+    "recall": 0.9723377870229618,
+    "f1": 0.9859649122807017,
+    "f1_macro": 0.9840780116387167,
+    "roc_auc": 0.9862739241850663
   },
   "feature_names": [
     "Age",
@@ -18,15 +18,15 @@
     "Last Interaction"
   ],
   "best_params": {
-    "model__n_estimators": 100,
-    "model__min_samples_split": 5,
+    "model__n_estimators": 200,
+    "model__min_samples_split": 10,
     "model__min_samples_leaf": 1,
-    "model__max_features": null,
+    "model__max_features": "log2",
     "model__max_depth": 15
   },
-  "mlflow_run_id": "c4b8ebd4ee3d4e89927544ad032cdd4c",
+  "mlflow_run_id": "5938c56c3a0c43be93a8b48a0543ebf7",
   "samples": {
-    "train": 352665,
-    "test": 88167
+    "train": 352647,
+    "test": 88162
   }
 }
