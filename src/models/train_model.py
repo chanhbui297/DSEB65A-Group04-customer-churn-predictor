@@ -16,10 +16,11 @@ import mlflow  # noqa: E402
 import mlflow.sklearn  # noqa: E402
 import pandas as pd  # noqa: E402
 import yaml  # noqa: E402
+
 root_dir = Path(__file__).resolve().parents[2]
 if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
-    
+
 from sklearn.ensemble import RandomForestClassifier  # noqa: E402
 from sklearn.metrics import (accuracy_score, f1_score, precision_score, 
                             recall_score, roc_auc_score)  # noqa: E402
