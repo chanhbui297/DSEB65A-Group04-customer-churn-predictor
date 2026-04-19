@@ -1,6 +1,6 @@
 {
-  "version": "run_20260419_213343",
-  "timestamp": "2026-04-19T21:34:45.746448",
+  "version": "run_20260419_214237",
+  "timestamp": "2026-04-19T21:43:26.644240",
   "metrics": {
     "accuracy": 0.9810827924647776,
     "precision": 0.9982949526489863,
@@ -24,7 +24,7 @@
     "model__max_features": "sqrt",
     "model__max_depth": 10
   },
-  "mlflow_run_id": "c43ca6f6f3534801b867b99704ccad0b",
+  "mlflow_run_id": "6f585a9bd1cf45118a8912441c0a349f",
   "samples": {
     "train": 353750,
     "test": 88438
