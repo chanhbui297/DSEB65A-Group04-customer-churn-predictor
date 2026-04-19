@@ -1,13 +1,13 @@
 {
-  "version": "run_20260416_160817",
-  "timestamp": "2026-04-16T16:18:33.302347",
+  "version": "run_20260419_213343",
+  "timestamp": "2026-04-19T21:34:45.746448",
   "metrics": {
-    "accuracy": 0.9844272800480905,
-    "precision": 0.9998766422007032,
-    "recall": 0.97266,
-    "f1": 0.986080556372226,
-    "f1_macro": 0.9842044457644643,
-    "roc_auc": 0.9880822721198941
+    "accuracy": 0.9810827924647776,
+    "precision": 0.9982949526489863,
+    "recall": 0.9683178575698402,
+    "f1": 0.9830779345572245,
+    "f1_macro": 0.9808161205005937,
+    "roc_auc": 0.9844874632507405
   },
   "feature_names": [
     "Age",
@@ -20,13 +20,13 @@
   "best_params": {
     "model__n_estimators": 100,
     "model__min_samples_split": 5,
-    "model__min_samples_leaf": 1,
-    "model__max_features": null,
-    "model__max_depth": 15
+    "model__min_samples_leaf": 4,
+    "model__max_features": "sqrt",
+    "model__max_depth": 10
   },
-  "mlflow_run_id": "c4b8ebd4ee3d4e89927544ad032cdd4c",
+  "mlflow_run_id": "c43ca6f6f3534801b867b99704ccad0b",
   "samples": {
-    "train": 352665,
-    "test": 88167
+    "train": 353750,
+    "test": 88438
   }
 }

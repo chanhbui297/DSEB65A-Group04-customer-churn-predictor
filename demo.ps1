@@ -258,11 +258,11 @@ function Run-Training {
     Show-Heading 'Model Training'
     
     Start-Process -FilePath "mlflow" -ArgumentList "ui" -WindowStyle Hidden
-    Start-Sleep -Seconds 3
-    Start-Process "http://127.0.0.1:5000"
 
     Write-Host 'Training with MLflow and storing artifacts in models/' -ForegroundColor Yellow
     python .\src\models\train_model.py --data data\raw\train.csv --model_dir models --config config\drift_config.yaml --n_iter 1
+
+    Start-Process "http://127.0.0.1:5000"
 
     Write-Host 'Training finished. Check mlruns/ for the run and models/ for saved artifacts.' -ForegroundColor Green
 }
@@ -307,9 +307,9 @@ function Start-Inference {
 function Deploy-K8s {
     Show-Heading 'Kubernetes Deployment'
     
-    Write-Host 'Recreating namespace...' -ForegroundColor Yellow 
-    kubectl delete namespace churn-app --ignore-not-found 
-    kubectl create namespace churn-app
+    # Write-Host 'Recreating namespace...' -ForegroundColor Yellow 
+    # kubectl delete namespace churn-app --ignore-not-found 
+    # kubectl create namespace churn-app
     
     Write-Host 'Applying Kubernetes manifests from k8s/' -ForegroundColor Yellow
     kubectl apply -k .\k8s -n churn-app
