@@ -281,7 +281,7 @@ function Start-Inference {
 
     Write-Host 'Opening browsers...' -ForegroundColor Yellow
     Start-Process 'http://127.0.0.1:8000/docs'
-    Start-Process 'http://127.0.0.1:8501'
+    # Start-Process 'http://127.0.0.1:8501'
 
     Write-Host 'Calling /predict with a sample customer payload...' -ForegroundColor Yellow
     $payload = @{
@@ -327,6 +327,8 @@ function Deploy-K8s {
     Start-PortForward -DisplayName 'Grafana' -ServiceName 'grafana' -LocalPort 3000 -RemotePort 3000 -HealthUrl 'http://127.0.0.1:3000/api/health'
     Start-PortForward -DisplayName 'Prometheus' -ServiceName 'prometheus' -LocalPort 9090 -RemotePort 9090 -HealthUrl 'http://127.0.0.1:9090/-/healthy'
 
+    Write-Host 'Press Enter to open the services in browser.'
+    Read-Host
     Write-Host "`n Opening services in browser..." -ForegroundColor Green 
     
     Start-Process "http://localhost:8501" # Streamlit UI 
@@ -369,6 +371,8 @@ function Show-Monitoring {
         Write-Host " monitoring.log not found!" -ForegroundColor Red
     }
 
+    Write-Host 'Press Enter to open the dashboards.'
+    Read-Host
     Write-Host "`n Opening dashboards..." -ForegroundColor Yellow
     Start-Process "http://localhost:3000"   # Grafana
     Start-Process "http://localhost:9090"   # Prometheus
