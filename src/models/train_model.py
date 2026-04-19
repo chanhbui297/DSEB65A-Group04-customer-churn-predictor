@@ -7,7 +7,6 @@ import logging
 from pathlib import Path
 from datetime import datetime
 
-
 import joblib  # noqa: E402
 import mlflow  # noqa: E402
 import mlflow.sklearn  # noqa: E402
