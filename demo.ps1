@@ -334,7 +334,6 @@ function Deploy-K8s {
     Write-Host '`nDeployment complete!' -ForegroundColor Green
 }
 
-
 function Show-Monitoring {
     Show-Heading 'Monitoring and Drift Detection'
 
