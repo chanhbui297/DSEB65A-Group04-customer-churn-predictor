@@ -13,6 +13,7 @@ param(
     [switch]$Monitor,
     [switch]$CI
 )
+
 $WarningPreference = "SilentlyContinue"
 $VerbosePreference = "SilentlyContinue"
 $InformationPreference = "SilentlyContinue"
