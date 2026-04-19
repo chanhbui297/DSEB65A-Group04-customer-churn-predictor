@@ -7,9 +7,6 @@ import logging
 from pathlib import Path
 from datetime import datetime
 
-root_dir = Path(__file__).resolve().parents[2]
-if str(root_dir) not in sys.path:
-    sys.path.insert(0, str(root_dir))
 
 import joblib  # noqa: E402
 import mlflow  # noqa: E402

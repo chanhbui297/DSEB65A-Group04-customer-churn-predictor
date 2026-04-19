@@ -307,9 +307,9 @@ function Start-Inference {
 function Deploy-K8s {
     Show-Heading 'Kubernetes Deployment'
     
-    Write-Host 'Recreating namespace...' -ForegroundColor Yellow 
-    kubectl delete namespace churn-app --ignore-not-found 
-    kubectl create namespace churn-app
+    # Write-Host 'Recreating namespace...' -ForegroundColor Yellow 
+    # kubectl delete namespace churn-app --ignore-not-found 
+    # kubectl create namespace churn-app
     
     Write-Host 'Applying Kubernetes manifests from k8s/' -ForegroundColor Yellow
     kubectl apply -k .\k8s -n churn-app
