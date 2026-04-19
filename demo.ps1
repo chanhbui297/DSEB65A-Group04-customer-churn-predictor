@@ -334,11 +334,7 @@ function Deploy-K8s {
     Write-Host '`nDeployment complete!' -ForegroundColor Green
 }
 
-# function Show-Monitoring {
-#     Show-Heading 'Monitoring and Drift Detection'
-#     Write-Host 'Tail the monitoring log and show drift metrics from Grafana/Prometheus.' -ForegroundColor Yellow
-#     Get-Content .\logs\monitoring.log -Wait
-# }
+
 function Show-Monitoring {
     Show-Heading 'Monitoring and Drift Detection'
 
